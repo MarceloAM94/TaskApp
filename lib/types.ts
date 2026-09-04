@@ -33,6 +33,7 @@ export interface Subtask {
 
 export interface TaskWithCourse extends Task {
   courses: Course | null;
+  subtask_count: number;
 }
 
 export interface TaskWithSubtasks extends TaskWithCourse {

@@ -75,7 +75,7 @@ export default function TaskDetailModal({
         progress: Math.max(0, Math.min(100, progress)),
       });
       const course = courseId ? courses.find((c) => c.id === courseId) || null : null;
-      onUpdate({ ...task, ...updated, courses: course });
+      onUpdate({ ...task, ...updated, courses: course, subtask_count: task.subtask_count });
       onClose();
     } catch (e) {
       setError(e instanceof Error ? e.message : "Error al guardar");

@@ -6,11 +6,17 @@ import type { Task, TaskWithCourse, TaskStatus } from "@/lib/types";
 export async function getTasks(): Promise<TaskWithCourse[]> {
   const { data, error } = await supabase
     .from("tasks")
-    .select("*, courses(*)")
+    .select("*, courses(*), subtasks(count)")
     .order("position");
 
   if (error) throw new Error(error.message);
-  return data ?? [];
+
+  return (data ?? []).map((task) => {
+    const { subtasks, ...rest } = task as TaskWithCourse & {
+      subtasks: { count: number }[];
+    };
+    return { ...rest, subtask_count: subtasks?.[0]?.count ?? 0 };
+  });
 }
 
 export type CreateTaskInput = Omit<

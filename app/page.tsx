@@ -8,7 +8,7 @@ export default async function HomePage() {
   const [tasks, courses] = await Promise.all([getTasks(), getCourses()]);
 
   return (
-    <main className="flex flex-1 flex-col">
+    <main className="flex min-h-0 flex-1 flex-col">
       <ClientBoard initialTasks={tasks} courses={courses} />
     </main>
   );

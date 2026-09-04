@@ -42,6 +42,7 @@ export default function ClientBoard({
 }: ClientBoardProps) {
   const [tasks, setTasks] = useState<TaskWithCourse[]>(initialTasks);
   const [showCreate, setShowCreate] = useState(false);
+  const [createStatus, setCreateStatus] = useState<TaskStatus>("pending");
   const [selectedTask, setSelectedTask] = useState<TaskWithCourse | null>(null);
   const [activeTask, setActiveTask] = useState<TaskWithCourse | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -94,6 +95,11 @@ export default function ClientBoard({
     () => STATUSES.reduce((sum, s) => sum + displayByStatus[s].length, 0),
     [displayByStatus]
   );
+
+  const openCreate = (status: TaskStatus = "pending") => {
+    setCreateStatus(status);
+    setShowCreate(true);
+  };
 
   const handleAddTask = (newTask: TaskWithCourse) => {
     setTasks((prev) => [...prev, newTask]);
@@ -301,14 +307,14 @@ export default function ClientBoard({
   };
 
   return (
-    <div className="relative flex-1">
-      <header className="flex items-center justify-between px-4 py-4 sm:px-6">
+    <div className="relative flex min-h-0 flex-1 flex-col">
+      <header className="flex shrink-0 items-center justify-between px-4 py-4 sm:px-6">
         <div>
           <h1 className="text-2xl font-bold text-zinc-100">Mis Tareas</h1>
           <p className="text-sm text-zinc-500">Tablero Kanban universitario</p>
         </div>
         <button
-          onClick={() => setShowCreate(true)}
+          onClick={() => openCreate("pending")}
           className="inline-flex items-center gap-2 rounded-xl bg-violet-600 px-4 py-2 text-sm font-medium text-white shadow-lg shadow-violet-900/40 transition-colors hover:bg-violet-500"
         >
           <svg
@@ -329,7 +335,7 @@ export default function ClientBoard({
       </header>
 
       {error && (
-        <div className="mx-4 mb-2 rounded-lg border border-red-500/30 bg-red-500/10 px-4 py-2 text-sm text-red-400">
+        <div className="mx-4 mb-2 shrink-0 rounded-lg border border-red-500/30 bg-red-500/10 px-4 py-2 text-sm text-red-400">
           {error}
         </div>
       )}
@@ -340,26 +346,29 @@ export default function ClientBoard({
         onDragOver={handleDragOver}
         onDragEnd={handleDragEnd}
       >
-        <BoardFilters
-          courses={courses}
-          courseFilter={courseFilter}
-          onCourseFilter={setCourseFilter}
-          priorityFilter={priorityFilter}
-          onPriorityFilter={setPriorityFilter}
-          showDone={showDone}
-          onShowDone={setShowDone}
-          taskCount={visibleCount}
-        />
+        <div className="mx-auto flex w-full max-w-[1600px] flex-1 flex-col sm:min-h-0">
+          <BoardFilters
+            courses={courses}
+            courseFilter={courseFilter}
+            onCourseFilter={setCourseFilter}
+            priorityFilter={priorityFilter}
+            onPriorityFilter={setPriorityFilter}
+            showDone={showDone}
+            onShowDone={setShowDone}
+            taskCount={visibleCount}
+          />
 
-        <div className="flex flex-col gap-4 px-2 sm:flex-row sm:items-start sm:gap-4 sm:overflow-x-auto sm:px-6">
-          {STATUSES.map((status) => (
-            <Column
-              key={status}
-              status={status}
-              tasks={displayByStatus[status]}
-              onTaskClick={setSelectedTask}
-            />
-          ))}
+          <div className="flex w-full flex-col gap-4 px-4 pb-4 sm:min-h-0 sm:flex-1 sm:flex-row sm:items-stretch sm:gap-4 sm:px-6">
+            {STATUSES.map((status) => (
+              <Column
+                key={status}
+                status={status}
+                tasks={displayByStatus[status]}
+                onTaskClick={setSelectedTask}
+                onAddTask={() => openCreate(status)}
+              />
+            ))}
+          </div>
         </div>
 
         <DragOverlay>
@@ -372,9 +381,11 @@ export default function ClientBoard({
       </DndContext>
 
       <CreateTaskForm
+        key={createStatus}
         open={showCreate}
         onClose={() => setShowCreate(false)}
         courses={courses}
+        initialStatus={createStatus}
         onCreated={handleAddTask}
       />
 

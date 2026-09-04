@@ -3,10 +3,10 @@ import { es } from "date-fns/locale";
 import Badge from "@/components/ui/Badge";
 import type { TaskWithCourse } from "@/lib/types";
 
-const priorityStyles: Record<string, { label: string; className: string }> = {
-  high: { label: "Alta", className: "bg-red-500/15 text-red-400" },
-  medium: { label: "Media", className: "bg-amber-500/15 text-amber-400" },
-  low: { label: "Baja", className: "bg-sky-500/15 text-sky-400" },
+const priorityStyles: Record<string, { label: string; className: string; bar: string }> = {
+  high: { label: "Alta", className: "bg-red-500/15 text-red-400", bar: "border-l-red-500" },
+  medium: { label: "Media", className: "bg-amber-500/15 text-amber-400", bar: "border-l-amber-500" },
+  low: { label: "Baja", className: "bg-sky-500/15 text-sky-400", bar: "border-l-sky-400" },
 };
 
 function getDueDateAlert(dueDate: string, status: string) {
@@ -43,6 +43,8 @@ export default function TaskCard({ task, onClick }: TaskCardProps) {
   const priority = priorityStyles[task.priority];
   const dueAlert = getDueDateAlert(task.due_date ?? "", task.status);
   const hasProgress = task.progress > 0 && task.status !== "done";
+  const isDone = task.status === "done";
+  const hasSubtasks = task.subtask_count > 0;
 
   const cardBorder =
     dueAlert?.className.includes("red")
@@ -54,7 +56,9 @@ export default function TaskCard({ task, onClick }: TaskCardProps) {
   return (
     <button
       onClick={onClick}
-      className={`group w-full cursor-pointer rounded-xl border p-3 text-left transition-all hover:bg-zinc-800 ${cardBorder} bg-zinc-800/60 hover:border-zinc-600`}
+      className={`group w-full cursor-pointer rounded-xl border-l-4 border bg-zinc-800/60 p-3 text-left shadow-sm transition-all hover:-translate-y-0.5 hover:bg-zinc-800 hover:shadow-lg hover:shadow-black/30 ${
+        isDone ? "opacity-75" : ""
+      } ${priority.bar} ${cardBorder}`}
     >
       <div className="flex items-start gap-2">
         {task.courses && (
@@ -66,17 +70,56 @@ export default function TaskCard({ task, onClick }: TaskCardProps) {
         <h3 className="flex-1 text-sm font-medium leading-snug text-zinc-100">
           {task.title}
         </h3>
+        {isDone && (
+          <svg
+            className="mt-0.5 h-4 w-4 shrink-0 text-emerald-400"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+            strokeWidth={2}
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+            />
+          </svg>
+        )}
       </div>
+
+      {task.description && (
+        <p className="mt-1 line-clamp-2 text-xs leading-relaxed text-zinc-400">
+          {task.description}
+        </p>
+      )}
 
       <div className="mt-2 flex flex-wrap items-center gap-1.5">
         {task.courses ? (
-          <Badge className="bg-zinc-700/50 text-zinc-300">
-            {task.courses.name}
-          </Badge>
+          <Badge className="bg-zinc-700/50 text-zinc-300">{task.courses.name}</Badge>
         ) : (
           <Badge className="bg-zinc-700/30 text-zinc-500">Sin curso</Badge>
         )}
         <Badge className={priority.className}>{priority.label}</Badge>
+        {hasSubtasks && (
+          <Badge className="bg-zinc-700/30 text-zinc-400">
+            <span className="mr-1 inline-flex items-center">
+              <svg
+                className="h-3 w-3"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                strokeWidth={2}
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"
+                />
+              </svg>
+            </span>
+            {task.subtask_count}
+          </Badge>
+        )}
       </div>
 
       {task.due_date && (
@@ -108,9 +151,7 @@ export default function TaskCard({ task, onClick }: TaskCardProps) {
               style={{ width: `${task.progress}%` }}
             />
           </div>
-          <p className="mt-1 text-right text-[10px] text-zinc-500">
-            {task.progress}%
-          </p>
+          <p className="mt-1 text-right text-[10px] text-zinc-500">{task.progress}%</p>
         </div>
       )}
     </button>

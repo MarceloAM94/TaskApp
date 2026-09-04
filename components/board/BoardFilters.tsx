@@ -14,7 +14,7 @@ interface BoardFiltersProps {
 }
 
 const selectClass =
-  "rounded-lg border border-zinc-700 bg-zinc-800 px-3 py-1.5 text-xs text-zinc-200 outline-none transition-colors focus:border-violet-500";
+  "h-8 rounded-lg border border-zinc-700/80 bg-zinc-800/80 px-2.5 pr-7 text-xs text-zinc-200 outline-none transition-colors focus:border-violet-500";
 
 export default function BoardFilters({
   courses,
@@ -27,7 +27,7 @@ export default function BoardFilters({
   taskCount,
 }: BoardFiltersProps) {
   return (
-    <div className="flex flex-wrap items-center gap-2 px-4 py-2 sm:px-6">
+    <div className="flex shrink-0 flex-wrap items-center gap-2 border-b border-zinc-800/60 px-4 py-2 sm:px-6">
       <select
         className={selectClass}
         value={courseFilter}
@@ -57,13 +57,31 @@ export default function BoardFilters({
 
       <button
         onClick={() => onShowDone(!showDone)}
-        className={`rounded-lg border px-3 py-1.5 text-xs font-medium transition-colors ${
+        role="switch"
+        aria-checked={showDone}
+        className={`inline-flex items-center gap-2 rounded-lg px-2 py-1 text-xs font-medium transition-colors ${
           showDone
-            ? "border-violet-500/50 bg-violet-500/15 text-violet-300"
-            : "border-zinc-700 bg-zinc-800 text-zinc-400 hover:text-zinc-200"
+            ? "text-violet-300"
+            : "text-zinc-400 hover:text-zinc-200"
         }`}
       >
-        Mostrar terminadas
+        <span
+          aria-hidden="true"
+          className={`relative inline-flex h-5 w-9 shrink-0 items-center rounded-full border transition-colors ${
+            showDone
+              ? "border-violet-500/60 bg-violet-500/30"
+              : "border-zinc-600 bg-zinc-800"
+          }`}
+        >
+          <span
+            className={`absolute h-3.5 w-3.5 rounded-full shadow transition-all ${
+              showDone
+                ? "left-[18px] bg-violet-300"
+                : "left-1 bg-zinc-500"
+            }`}
+          />
+        </span>
+        Terminadas
       </button>
 
       <span className="ml-auto text-xs text-zinc-500">

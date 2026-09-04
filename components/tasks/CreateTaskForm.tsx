@@ -12,6 +12,7 @@ interface CreateTaskFormProps {
   open: boolean;
   onClose: () => void;
   courses: Course[];
+  initialStatus?: TaskStatus;
   onCreated: (task: TaskWithCourse) => void;
 }
 
@@ -19,12 +20,13 @@ export default function CreateTaskForm({
   open,
   onClose,
   courses,
+  initialStatus = "pending",
   onCreated,
 }: CreateTaskFormProps) {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [courseId, setCourseId] = useState("");
-  const [status, setStatus] = useState<TaskStatus>("pending");
+  const [status, setStatus] = useState<TaskStatus>(initialStatus);
   const [priority, setPriority] = useState<TaskPriority>("medium");
   const [dueDate, setDueDate] = useState("");
   const [loading, setLoading] = useState(false);
@@ -34,7 +36,7 @@ export default function CreateTaskForm({
     setTitle("");
     setDescription("");
     setCourseId("");
-    setStatus("pending");
+    setStatus(initialStatus);
     setPriority("medium");
     setDueDate("");
     setError(null);
@@ -60,7 +62,7 @@ export default function CreateTaskForm({
       };
       const task = await createTask(input);
       const course = courseId ? courses.find((c) => c.id === courseId) || null : null;
-      onCreated({ ...task, courses: course });
+      onCreated({ ...task, courses: course, subtask_count: 0 });
       reset();
       onClose();
     } catch (err) {

@@ -15,24 +15,46 @@ interface ColumnProps {
   status: TaskStatus;
   tasks: TaskWithCourse[];
   onTaskClick: (task: TaskWithCourse) => void;
+  onAddTask: () => void;
 }
 
-export default function Column({ status, tasks, onTaskClick }: ColumnProps) {
+export default function Column({
+  status,
+  tasks,
+  onTaskClick,
+  onAddTask,
+}: ColumnProps) {
   const config = columnConfig[status];
   const { setNodeRef, isOver } = useDroppable({ id: status });
 
   return (
     <div
-      className={`flex w-full shrink-0 flex-col rounded-2xl border bg-zinc-900/60 transition-colors sm:w-80 ${
+      className={`flex w-full shrink-0 flex-col rounded-2xl border bg-zinc-900/60 transition-colors sm:min-h-0 sm:min-w-0 sm:flex-1 ${
         isOver ? "border-violet-500/60 bg-zinc-900" : "border-zinc-800"
       }`}
     >
-      <div className="flex items-center gap-2 px-4 py-3">
-        <span className={`h-2.5 w-2.5 rounded-full ${config.accent}`} />
+      <div className="flex shrink-0 items-center gap-2 px-4 py-3">
+        <span className={`h-2.5 w-2.5 shrink-0 rounded-full ${config.accent}`} />
         <h2 className="text-sm font-semibold text-zinc-200">{config.title}</h2>
         <span className="ml-auto rounded-full bg-zinc-800 px-2 py-0.5 text-xs text-zinc-400">
           {tasks.length}
         </span>
+        <button
+          onClick={onAddTask}
+          title={`Nueva tarea en ${config.title}`}
+          aria-label={`Nueva tarea en ${config.title}`}
+          className="inline-flex h-6 w-6 items-center justify-center rounded-md text-zinc-500 transition-colors hover:bg-zinc-700/60 hover:text-zinc-200"
+        >
+          <svg
+            className="h-4 w-4"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+            strokeWidth={2.5}
+          >
+            <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v12m6-6H6" />
+          </svg>
+        </button>
       </div>
 
       <SortableContext
@@ -42,12 +64,30 @@ export default function Column({ status, tasks, onTaskClick }: ColumnProps) {
       >
         <div
           ref={setNodeRef}
-          className="flex min-h-[200px] flex-1 flex-col gap-2 overflow-y-auto p-2"
+          className="flex flex-1 flex-col gap-2 overflow-y-auto p-2 sm:min-h-0"
         >
           {tasks.length === 0 ? (
-            <div className="flex flex-1 items-center justify-center rounded-xl border border-dashed border-zinc-800 p-4 text-center text-xs text-zinc-600">
-              Sin tareas
-            </div>
+            <button
+              onClick={onAddTask}
+              className="flex flex-1 cursor-pointer flex-col items-center justify-center gap-2 rounded-xl border border-dashed border-zinc-800 p-6 text-center text-zinc-500 transition-colors hover:border-violet-500/40 hover:bg-zinc-900/40 hover:text-zinc-400"
+            >
+              <svg
+                className="h-6 w-6"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                strokeWidth={1.5}
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M12 6v12m6-6H6"
+                />
+              </svg>
+              <span className="text-xs">
+                Arrastra una tarea aquí o pulsa para crear
+              </span>
+            </button>
           ) : (
             tasks.map((task) => (
               <SortableTaskCard
