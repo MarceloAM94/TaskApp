@@ -44,10 +44,17 @@ export default function TaskCard({ task, onClick }: TaskCardProps) {
   const dueAlert = getDueDateAlert(task.due_date ?? "", task.status);
   const hasProgress = task.progress > 0 && task.status !== "done";
 
+  const cardBorder =
+    dueAlert?.className.includes("red")
+      ? "border-red-500/40"
+      : dueAlert?.className.includes("amber")
+        ? "border-amber-500/40"
+        : "border-zinc-800";
+
   return (
     <button
       onClick={onClick}
-      className="group w-full cursor-pointer rounded-xl border border-zinc-800 bg-zinc-800/60 p-3 text-left transition-all hover:border-zinc-700 hover:bg-zinc-800"
+      className={`group w-full cursor-pointer rounded-xl border p-3 text-left transition-all hover:bg-zinc-800 ${cardBorder} bg-zinc-800/60 hover:border-zinc-600`}
     >
       <div className="flex items-start gap-2">
         {task.courses && (

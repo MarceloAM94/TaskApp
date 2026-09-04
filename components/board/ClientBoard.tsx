@@ -1,17 +1,39 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
+import { DndContext,
+  DragOverlay,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+  type DragStartEvent,
+  type DragOverEvent,
+} from "@dnd-kit/core";
+import { arrayMove } from "@dnd-kit/sortable";
 import Column from "@/components/board/Column";
+import BoardFilters from "@/components/board/BoardFilters";
+import TaskCard from "@/components/tasks/TaskCard";
 import CreateTaskForm from "@/components/tasks/CreateTaskForm";
 import TaskDetailModal from "@/components/tasks/TaskDetailModal";
-import { updateTaskStatus, deleteTask } from "@/actions/tasks";
-import type { Course, TaskStatus, TaskWithCourse } from "@/lib/types";
+import { updateTaskStatus, updateTaskPositions, deleteTask } from "@/actions/tasks";
+import type { Course, TaskStatus, TaskWithCourse, TaskPriority } from "@/lib/types";
 
 const STATUSES: TaskStatus[] = ["pending", "in_progress", "done"];
 
 interface ClientBoardProps {
   initialTasks: TaskWithCourse[];
   courses: Course[];
+}
+
+function findContainer(
+  id: string,
+  tasksByStatus: Record<string, TaskWithCourse[]>
+): TaskStatus {
+  for (const status of STATUSES) {
+    if (tasksByStatus[status].some((t) => t.id === id)) return status;
+  }
+  return id as TaskStatus; // si no es tarea, es el id del contenedor (un status)
 }
 
 export default function ClientBoard({
@@ -21,13 +43,57 @@ export default function ClientBoard({
   const [tasks, setTasks] = useState<TaskWithCourse[]>(initialTasks);
   const [showCreate, setShowCreate] = useState(false);
   const [selectedTask, setSelectedTask] = useState<TaskWithCourse | null>(null);
+  const [activeTask, setActiveTask] = useState<TaskWithCourse | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [courseFilter, setCourseFilter] = useState("all");
+  const [priorityFilter, setPriorityFilter] = useState<TaskPriority | "all">("all");
+  const [showDone, setShowDone] = useState(true);
 
-  const tasksByStatus = (status: TaskStatus) =>
-    tasks
-      .filter((t) => t.status === status)
-      .sort((a, b) => a.position - b.position);
+  const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }));
+
+  const tasksByStatus = useMemo(
+    () =>
+      STATUSES.reduce(
+        (acc, status) => {
+          acc[status] = tasks
+            .filter((t) => t.status === status)
+            .sort((a, b) => a.position - b.position);
+          return acc;
+        },
+        {} as Record<TaskStatus, TaskWithCourse[]>
+      ),
+    [tasks]
+  );
+
+  const displayByStatus = useMemo(
+    () =>
+      STATUSES.reduce(
+        (acc, status) => {
+          acc[status] = tasksByStatus[status].filter((t) => {
+            if (!showDone && t.status === "done") return false;
+            if (courseFilter === "none" && t.course_id !== null) return false;
+            if (
+              courseFilter !== "all" &&
+              courseFilter !== "none" &&
+              t.course_id !== courseFilter
+            )
+              return false;
+            if (priorityFilter !== "all" && t.priority !== priorityFilter)
+              return false;
+            return true;
+          });
+          return acc;
+        },
+        {} as Record<TaskStatus, TaskWithCourse[]>
+      ),
+    [tasksByStatus, courseFilter, priorityFilter, showDone]
+  );
+
+  const visibleCount = useMemo(
+    () => STATUSES.reduce((sum, s) => sum + displayByStatus[s].length, 0),
+    [displayByStatus]
+  );
 
   const handleAddTask = (newTask: TaskWithCourse) => {
     setTasks((prev) => [...prev, newTask]);
@@ -38,30 +104,26 @@ export default function ClientBoard({
     setTasks((prev) => prev.map((t) => (t.id === updated.id ? updated : t)));
   };
 
-  const handleStatusChange = async (task: TaskWithCourse, status: TaskStatus) => {
-    setLoading(true);
+  const handleStatusChange = async (
+    task: TaskWithCourse,
+    status: TaskStatus
+  ) => {
     setError(null);
     try {
-      const targetCount = tasks.filter(
+      const destination = tasks.filter(
         (t) => t.status === status && t.id !== task.id
-      ).length;
-      const updated = await updateTaskStatus(task.id, status, targetCount);
+      );
+      const targetCount = destination.length;
+      await updateTaskStatus(task.id, status, targetCount);
       setTasks((prev) =>
         prev.map((t) =>
           t.id === task.id
-            ? {
-                ...t,
-                status: updated.status,
-                position: targetCount,
-                completed_at: updated.completed_at,
-              }
+            ? { ...t, status, position: targetCount }
             : t
         )
       );
     } catch (e) {
       setError(e instanceof Error ? e.message : "Error al actualizar la tarea");
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -77,6 +139,164 @@ export default function ClientBoard({
       setError(e instanceof Error ? e.message : "Error al eliminar la tarea");
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleDragStart = (event: DragStartEvent) => {
+    const task = tasks.find((t) => t.id === event.active.id);
+    setActiveTask(task ?? null);
+  };
+
+  const handleDragOver = (event: DragOverEvent) => {
+    const { active, over } = event;
+    if (!over) return;
+
+    const activeId = active.id as string;
+    const overId = over.id as string;
+    if (activeId === overId) return;
+
+    const activeContainer = findContainer(activeId, tasksByStatus);
+    const overContainer = findContainer(overId, tasksByStatus);
+    if (activeContainer === overContainer) return;
+
+    setTasks((prev) => {
+      const source = prev
+        .filter((t) => t.status === activeContainer)
+        .sort((a, b) => a.position - b.position);
+      const destination = prev
+        .filter((t) => t.status === overContainer)
+        .sort((a, b) => a.position - b.position);
+
+      const item = source.find((t) => t.id === activeId)!;
+      let newIndex = destination.length;
+      if (overContainer === overId) {
+        // sobre la columna vacía o el contenedor → al final
+      } else {
+        const overTaskIndex = destination.findIndex((t) => t.id === overId);
+        if (overTaskIndex !== -1) {
+          const isBelowOverItem =
+            active.rect.current.translated &&
+            active.rect.current.translated.top >
+              over.rect.top + over.rect.height / 2;
+          newIndex = isBelowOverItem ? overTaskIndex + 1 : overTaskIndex;
+        }
+      }
+
+      const nextSource = source.filter((t) => t.id !== activeId);
+      const nextDestination = [...destination];
+      nextDestination.splice(newIndex, 0, { ...item, status: overContainer as TaskStatus });
+
+      const updated = prev.map((t) => {
+        const idxInSource = nextSource.findIndex((x) => x.id === t.id);
+        if (idxInSource !== -1) return { ...t, position: idxInSource };
+        const idxInDest = nextDestination.findIndex((x) => x.id === t.id);
+        if (idxInDest !== -1) {
+          return {
+            ...t,
+            ...(t.id === item.id
+              ? { status: overContainer as TaskStatus, position: idxInDest }
+              : { position: idxInDest }),
+          };
+        }
+        return t;
+      });
+
+      return updated;
+    });
+  };
+
+  const handleDragEnd = async (event: DragEndEvent) => {
+    const { active, over } = event;
+    setActiveTask(null);
+    if (!over) return;
+
+    const activeId = active.id as string;
+    const overId = over.id as string;
+    if (activeId === overId) return;
+
+    const activeContainer = findContainer(activeId, tasksByStatus);
+    const overContainer = findContainer(overId, tasksByStatus);
+
+    // Reordenar dentro de la misma columna
+    if (activeContainer === overContainer) {
+      const col = tasksByStatus[activeContainer];
+      const oldIndex = col.findIndex((t) => t.id === activeId);
+      const newIndex = col.findIndex((t) => t.id === overId);
+      if (oldIndex === -1 || newIndex === -1 || oldIndex === newIndex) return;
+      const reordered = arrayMove(col, oldIndex, newIndex).map((t, i) => ({
+        ...t,
+        position: i,
+      }));
+
+      setTasks((prev) => {
+        const others = prev.filter((t) => t.status !== activeContainer);
+        return [...others, ...reordered];
+      });
+
+      persistPositions(reordered.map((t) => ({ id: t.id, status: t.status, position: t.position })));
+      return;
+    }
+
+    // Mover entre columnas
+    setTasks((prev) => {
+      const source = prev
+        .filter((t) => t.status === activeContainer)
+        .sort((a, b) => a.position - b.position);
+      const destination = prev
+        .filter((t) => t.status === overContainer)
+        .sort((a, b) => a.position - b.position);
+
+      const item = source.find((t) => t.id === activeId)!;
+      let newIndex = destination.length;
+      const overTask = destination.find((t) => t.id === overId);
+      if (overTask) {
+        const overIndex = destination.indexOf(overTask);
+        const isBelow =
+          active.rect.current.translated &&
+          active.rect.current.translated.top > over.rect.top + over.rect.height / 2;
+        newIndex = isBelow ? overIndex + 1 : overIndex;
+      }
+
+      const nextSource = source.filter((t) => t.id !== activeId);
+      const nextDestination = [...destination];
+      nextDestination.splice(newIndex, 0, {
+        ...item,
+        status: overContainer as TaskStatus,
+        position: newIndex,
+      });
+
+      const toPersist: { id: string; status: TaskStatus; position: number }[] = [];
+      const updated = prev.map((t) => {
+        const srcIdx = nextSource.findIndex((x) => x.id === t.id);
+        if (srcIdx !== -1) {
+          toPersist.push({ id: t.id, status: activeContainer as TaskStatus, position: srcIdx });
+          return { ...t, position: srcIdx };
+        }
+        const destIdx = nextDestination.findIndex((x) => x.id === t.id);
+        if (destIdx !== -1) {
+          toPersist.push({
+            id: t.id,
+            status: overContainer as TaskStatus,
+            position: destIdx,
+          });
+          return { ...t, status: overContainer as TaskStatus, position: destIdx };
+        }
+        return t;
+      });
+
+      persistPositions(toPersist);
+      return updated;
+    });
+  };
+
+  const persistPositions = async (
+    updates: { id: string; status: TaskStatus; position: number }[]
+  ) => {
+    setError(null);
+    try {
+      await updateTaskPositions(updates);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Error al guardar el orden");
     }
   };
 
@@ -114,16 +334,42 @@ export default function ClientBoard({
         </div>
       )}
 
-      <div className="flex flex-col gap-4 px-2 sm:flex-row sm:items-start sm:gap-4 sm:overflow-x-auto sm:px-6">
-        {STATUSES.map((status) => (
-          <Column
-            key={status}
-            status={status}
-            tasks={tasksByStatus(status)}
-            onTaskClick={setSelectedTask}
-          />
-        ))}
-      </div>
+      <DndContext
+        sensors={sensors}
+        onDragStart={handleDragStart}
+        onDragOver={handleDragOver}
+        onDragEnd={handleDragEnd}
+      >
+        <BoardFilters
+          courses={courses}
+          courseFilter={courseFilter}
+          onCourseFilter={setCourseFilter}
+          priorityFilter={priorityFilter}
+          onPriorityFilter={setPriorityFilter}
+          showDone={showDone}
+          onShowDone={setShowDone}
+          taskCount={visibleCount}
+        />
+
+        <div className="flex flex-col gap-4 px-2 sm:flex-row sm:items-start sm:gap-4 sm:overflow-x-auto sm:px-6">
+          {STATUSES.map((status) => (
+            <Column
+              key={status}
+              status={status}
+              tasks={displayByStatus[status]}
+              onTaskClick={setSelectedTask}
+            />
+          ))}
+        </div>
+
+        <DragOverlay>
+          {activeTask ? (
+            <div className="w-80">
+              <TaskCard task={activeTask} onClick={() => {}} />
+            </div>
+          ) : null}
+        </DragOverlay>
+      </DndContext>
 
       <CreateTaskForm
         open={showCreate}

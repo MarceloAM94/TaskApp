@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Modal from "@/components/ui/Modal";
+import SubtaskList from "@/components/tasks/SubtaskList";
 import { updateTask } from "@/actions/tasks";
 import type { Course, TaskPriority, TaskStatus, TaskWithCourse } from "@/lib/types";
 
@@ -181,6 +182,12 @@ export default function TaskDetailModal({
             <span>100</span>
           </div>
         </div>
+
+        <SubtaskList
+          taskId={task.id}
+          taskProgress={task.progress}
+          onProgressChange={setProgress}
+        />
 
         <div>
           <label className="mb-1 block text-xs font-medium text-zinc-400">
