@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import { DndContext,
   DragOverlay,
   PointerSensor,
+  pointerWithin,
   useSensor,
   useSensors,
   type DragEndEvent,
@@ -165,50 +166,53 @@ export default function ClientBoard({
     const overContainer = findContainer(overId, tasksByStatus);
     if (activeContainer === overContainer) return;
 
-    setTasks((prev) => {
-      const source = prev
-        .filter((t) => t.status === activeContainer)
-        .sort((a, b) => a.position - b.position);
-      const destination = prev
-        .filter((t) => t.status === overContainer)
-        .sort((a, b) => a.position - b.position);
+    // Movimiento entre columnas: recalcula la posición e inserta el item en el destino
+    const source = tasks
+      .filter((t) => t.status === activeContainer)
+      .sort((a, b) => a.position - b.position);
+    const destination = tasks
+      .filter((t) => t.status === overContainer)
+      .sort((a, b) => a.position - b.position);
 
-      const item = source.find((t) => t.id === activeId)!;
-      let newIndex = destination.length;
-      if (overContainer === overId) {
-        // sobre la columna vacía o el contenedor → al final
-      } else {
-        const overTaskIndex = destination.findIndex((t) => t.id === overId);
-        if (overTaskIndex !== -1) {
-          const isBelowOverItem =
-            active.rect.current.translated &&
-            active.rect.current.translated.top >
-              over.rect.top + over.rect.height / 2;
-          newIndex = isBelowOverItem ? overTaskIndex + 1 : overTaskIndex;
-        }
+    const item = source.find((t) => t.id === activeId);
+    if (!item) return;
+
+    let newIndex = destination.length;
+    if (overContainer !== overId) {
+      const overTaskIndex = destination.findIndex((t) => t.id === overId);
+      if (overTaskIndex !== -1) {
+        const isBelowOverItem =
+          active.rect.current.translated &&
+          active.rect.current.translated.top >
+            over.rect.top + over.rect.height / 2;
+        newIndex = isBelowOverItem ? overTaskIndex + 1 : overTaskIndex;
       }
+    }
 
-      const nextSource = source.filter((t) => t.id !== activeId);
-      const nextDestination = [...destination];
-      nextDestination.splice(newIndex, 0, { ...item, status: overContainer as TaskStatus });
-
-      const updated = prev.map((t) => {
-        const idxInSource = nextSource.findIndex((x) => x.id === t.id);
-        if (idxInSource !== -1) return { ...t, position: idxInSource };
-        const idxInDest = nextDestination.findIndex((x) => x.id === t.id);
-        if (idxInDest !== -1) {
-          return {
-            ...t,
-            ...(t.id === item.id
-              ? { status: overContainer as TaskStatus, position: idxInDest }
-              : { position: idxInDest }),
-          };
-        }
-        return t;
-      });
-
-      return updated;
+    const nextSource = source.filter((t) => t.id !== activeId);
+    const nextDestination = [...destination];
+    nextDestination.splice(newIndex, 0, {
+      ...item,
+      status: overContainer as TaskStatus,
     });
+
+    const toPersist: { id: string; status: TaskStatus; position: number }[] = [];
+    const updated = tasks.map((t) => {
+      const srcIdx = nextSource.findIndex((x) => x.id === t.id);
+      if (srcIdx !== -1) {
+        toPersist.push({ id: t.id, status: activeContainer as TaskStatus, position: srcIdx });
+        return { ...t, position: srcIdx };
+      }
+      const dstIdx = nextDestination.findIndex((x) => x.id === t.id);
+      if (dstIdx !== -1) {
+        toPersist.push({ id: t.id, status: overContainer as TaskStatus, position: dstIdx });
+        return { ...t, status: overContainer as TaskStatus, position: dstIdx };
+      }
+      return t;
+    });
+
+    setTasks(updated);
+    persistPositions(toPersist);
   };
 
   const handleDragEnd = async (event: DragEndEvent) => {
@@ -342,6 +346,7 @@ export default function ClientBoard({
 
       <DndContext
         sensors={sensors}
+        collisionDetection={pointerWithin}
         onDragStart={handleDragStart}
         onDragOver={handleDragOver}
         onDragEnd={handleDragEnd}
