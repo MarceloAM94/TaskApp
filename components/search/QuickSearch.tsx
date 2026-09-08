@@ -47,9 +47,16 @@ export default function QuickSearch() {
     const haystack = normalize(query.trim());
     if (haystack === "") return [];
 
-    const filtered = allTasks.filter((task) =>
-      normalize(task.title).includes(haystack)
-    );
+    const filtered = allTasks.filter((task) => {
+      const title = normalize(task.title);
+      const course = task.courses ? normalize(task.courses.name) : "";
+      const description = task.description ? normalize(task.description) : "";
+      return (
+        title.includes(haystack) ||
+        course.includes(haystack) ||
+        description.includes(haystack)
+      );
+    });
     return filtered
       .sort((a, b) => {
         if (a.status === "done" && b.status !== "done") return 1;
@@ -165,8 +172,8 @@ export default function QuickSearch() {
             <p className="p-3 text-sm text-zinc-500">Cargando tareas…</p>
           ) : query.trim() === "" ? (
             <p className="p-3 text-sm text-zinc-500">
-              Escribe para buscar por título. Usa ↑ ↓ para navegar y Enter para
-              abrir.
+              Escribe para buscar por título, curso o descripción. Usa ↑ ↓ para
+              navegar y Enter para abrir.
             </p>
           ) : results.length === 0 ? (
             <p className="p-3 text-sm text-zinc-500">
