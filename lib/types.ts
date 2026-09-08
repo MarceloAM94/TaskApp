@@ -21,6 +21,8 @@ export interface Task {
   position: number;
   created_at: string;
   completed_at: string | null;
+  reminder_offset_hours: number | null;
+  reminder_sent: boolean;
 }
 
 export interface Subtask {

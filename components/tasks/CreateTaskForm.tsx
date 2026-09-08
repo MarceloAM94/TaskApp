@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Modal from "@/components/ui/Modal";
 import { createTask, type CreateTaskInput } from "@/actions/tasks";
+import { REMINDER_OPTIONS } from "@/lib/reminder-options";
 import type { Course, TaskPriority, TaskStatus, TaskWithCourse } from "@/lib/types";
 
 const inputClass =
@@ -29,6 +30,7 @@ export default function CreateTaskForm({
   const [status, setStatus] = useState<TaskStatus>(initialStatus);
   const [priority, setPriority] = useState<TaskPriority>("medium");
   const [dueDate, setDueDate] = useState("");
+  const [reminderOffset, setReminderOffset] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -39,6 +41,7 @@ export default function CreateTaskForm({
     setStatus(initialStatus);
     setPriority("medium");
     setDueDate("");
+    setReminderOffset("");
     setError(null);
   };
 
@@ -59,6 +62,7 @@ export default function CreateTaskForm({
         priority,
         due_date: dueDate || null,
         progress: 0,
+        reminder_offset_hours: reminderOffset === "" ? null : Number(reminderOffset),
       };
       const task = await createTask(input);
       const course = courseId ? courses.find((c) => c.id === courseId) || null : null;
@@ -159,6 +163,24 @@ export default function CreateTaskForm({
               value={dueDate}
               onChange={(e) => setDueDate(e.target.value)}
             />
+          </div>
+
+          <div>
+            <label className="mb-1 block text-xs font-medium text-zinc-400">
+              Recordatorio
+            </label>
+            <select
+              className={inputClass}
+              value={reminderOffset}
+              onChange={(e) => setReminderOffset(e.target.value)}
+              disabled={!dueDate}
+            >
+              {REMINDER_OPTIONS.map((o) => (
+                <option key={o.value} value={o.value}>
+                  {o.label}
+                </option>
+              ))}
+            </select>
           </div>
         </div>
 

@@ -4,6 +4,7 @@ import { useState } from "react";
 import Modal from "@/components/ui/Modal";
 import SubtaskList from "@/components/tasks/SubtaskList";
 import { updateTask } from "@/actions/tasks";
+import { REMINDER_OPTIONS } from "@/lib/reminder-options";
 import type { Course, TaskPriority, TaskStatus, TaskWithCourse } from "@/lib/types";
 
 const inputClass =
@@ -45,6 +46,9 @@ export default function TaskDetailModal({
   const [courseId, setCourseId] = useState(task?.course_id ?? "");
   const [priority, setPriority] = useState<TaskPriority>(task?.priority ?? "medium");
   const [dueDate, setDueDate] = useState(task?.due_date ?? "");
+  const [reminderOffset, setReminderOffset] = useState(
+    task?.reminder_offset_hours?.toString() ?? ""
+  );
   const [progress, setProgress] = useState(task?.progress ?? 0);
   const [error, setError] = useState<string | null>(null);
 
@@ -66,6 +70,11 @@ export default function TaskDetailModal({
     }
     setError(null);
     try {
+      const nextReminderOffset =
+        reminderOffset === "" ? null : Number(reminderOffset);
+      const reminderChanged =
+        (task.reminder_offset_hours ?? null) !== nextReminderOffset;
+
       const updated = await updateTask(task.id, {
         title: title.trim(),
         description: description.trim() || null,
@@ -73,6 +82,8 @@ export default function TaskDetailModal({
         priority,
         due_date: dueDate || null,
         progress: Math.max(0, Math.min(100, progress)),
+        reminder_offset_hours: nextReminderOffset,
+        reminder_sent: reminderChanged ? false : task.reminder_sent,
       });
       const course = courseId ? courses.find((c) => c.id === courseId) || null : null;
       onUpdate({ ...task, ...updated, courses: course, subtask_count: task.subtask_count });
@@ -160,6 +171,24 @@ export default function TaskDetailModal({
               value={dueDate}
               onChange={(e) => setDueDate(e.target.value)}
             />
+          </div>
+
+          <div>
+            <label className="mb-1 block text-xs font-medium text-zinc-400">
+              Recordatorio
+            </label>
+            <select
+              className={inputClass}
+              value={reminderOffset}
+              onChange={(e) => setReminderOffset(e.target.value)}
+              disabled={!dueDate}
+            >
+              {REMINDER_OPTIONS.map((o) => (
+                <option key={o.value} value={o.value}>
+                  {o.label}
+                </option>
+              ))}
+            </select>
           </div>
         </div>
 
