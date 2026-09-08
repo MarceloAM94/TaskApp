@@ -21,7 +21,7 @@ export async function getTasks(): Promise<TaskWithCourse[]> {
 
 export type CreateTaskInput = Omit<
   Task,
-  "id" | "created_at" | "completed_at" | "position" | "reminder_sent"
+  "id" | "created_at" | "completed_at" | "position" | "reminder_sent" | "time_spent_seconds"
 >;
 
 export async function createTask(task: CreateTaskInput): Promise<Task> {
@@ -32,7 +32,7 @@ export async function createTask(task: CreateTaskInput): Promise<Task> {
 
   const { data, error } = await supabase
     .from("tasks")
-    .insert({ ...task, reminder_sent: false, position: count ?? 0 })
+    .insert({ ...task, reminder_sent: false, time_spent_seconds: 0, position: count ?? 0 })
     .select()
     .single();
 

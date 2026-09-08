@@ -23,6 +23,19 @@ export interface Task {
   completed_at: string | null;
   reminder_offset_hours: number | null;
   reminder_sent: boolean;
+  time_spent_seconds: number;
+}
+
+export type PomodoroSessionType = "focus" | "short_break" | "long_break";
+
+export interface PomodoroSession {
+  id: string;
+  task_id: string;
+  type: PomodoroSessionType;
+  started_at: string;
+  ended_at: string | null;
+  duration_seconds: number;
+  created_at: string;
 }
 
 export interface Subtask {

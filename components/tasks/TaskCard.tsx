@@ -1,6 +1,7 @@
 import { format, isPast, isToday, differenceInCalendarDays } from "date-fns";
 import { es } from "date-fns/locale";
 import Badge from "@/components/ui/Badge";
+import { formatDuration } from "@/lib/format";
 import type { TaskWithCourse } from "@/lib/types";
 
 const priorityStyles: Record<string, { label: string; className: string; bar: string }> = {
@@ -45,6 +46,7 @@ export default function TaskCard({ task, onClick }: TaskCardProps) {
   const hasProgress = task.progress > 0 && task.status !== "done";
   const isDone = task.status === "done";
   const hasSubtasks = task.subtask_count > 0;
+  const hasTimeSpent = task.time_spent_seconds > 0;
 
   const cardBorder =
     dueAlert?.className.includes("red")
@@ -140,6 +142,25 @@ export default function TaskCard({ task, onClick }: TaskCardProps) {
             />
           </svg>
           {dueAlert?.label}
+        </div>
+      )}
+
+      {hasTimeSpent && (
+        <div className="mt-2 inline-flex items-center gap-1 rounded-lg border border-violet-500/30 bg-violet-500/10 px-2 py-0.5 text-xs text-violet-300">
+          <svg
+            className="h-3 w-3"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+            strokeWidth={2}
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
+            />
+          </svg>
+          {formatDuration(task.time_spent_seconds)}
         </div>
       )}
 

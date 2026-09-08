@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Modal from "@/components/ui/Modal";
 import SubtaskList from "@/components/tasks/SubtaskList";
+import PomodoroTimer from "@/components/pomodoro/PomodoroTimer";
 import { updateTask } from "@/actions/tasks";
 import { REMINDER_OPTIONS } from "@/lib/reminder-options";
 import type { Course, TaskPriority, TaskStatus, TaskWithCourse } from "@/lib/types";
@@ -50,6 +51,7 @@ export default function TaskDetailModal({
     task?.reminder_offset_hours?.toString() ?? ""
   );
   const [progress, setProgress] = useState(task?.progress ?? 0);
+  const [timeSpent, setTimeSpent] = useState(task?.time_spent_seconds ?? 0);
   const [error, setError] = useState<string | null>(null);
 
   // Usa una clave (key) externa para remontar el componente con estado inicial
@@ -62,6 +64,12 @@ export default function TaskDetailModal({
       </Modal>
     );
   }
+
+  const handleTimeSpentChange = (delta: number) => {
+    const next = timeSpent + delta;
+    setTimeSpent(next);
+    onUpdate({ ...task, time_spent_seconds: next });
+  };
 
   const handleSave = async () => {
     if (!title.trim()) {
@@ -211,6 +219,8 @@ export default function TaskDetailModal({
             <span>100</span>
           </div>
         </div>
+
+        <PomodoroTimer taskId={task.id} onTimeSpentChange={handleTimeSpentChange} />
 
         <SubtaskList
           taskId={task.id}
