@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import KeyboardShortcutsHelp from "@/components/ui/KeyboardShortcutsHelp";
 
 const links = [
   { href: "/", label: "Tablero" },
@@ -25,27 +26,29 @@ export default function Nav() {
         TaskApp
       </Link>
 
-      {links.map((link) => {
-        const isActive =
-          link.href === "/"
-            ? pathname === "/"
-            : pathname.startsWith(link.href);
+{links.map((link) => {
+          const isActive =
+            link.href === "/"
+              ? pathname === "/"
+              : pathname.startsWith(link.href);
 
-        return (
-          <Link
-            key={link.href}
-            href={link.href}
-            aria-current={isActive ? "page" : undefined}
-            className={`rounded-lg px-3 py-1.5 text-sm font-medium transition-colors ${
-              isActive
-                ? "bg-violet-500/15 text-violet-300"
-                : "text-zinc-300 hover:bg-zinc-800"
-            }`}
-          >
-            {link.label}
-          </Link>
-        );
-      })}
-    </nav>
+          return (
+            <Link
+              key={link.href}
+              href={link.href}
+              aria-current={isActive ? "page" : undefined}
+              className={`rounded-lg px-3 py-1.5 text-sm font-medium transition-colors ${
+                isActive
+                  ? "bg-violet-500/15 text-violet-300"
+                  : "text-zinc-300 hover:bg-zinc-800"
+              }`}
+            >
+              {link.label}
+            </Link>
+          );
+        })}
+
+        <KeyboardShortcutsHelp />
+      </nav>
   );
 }

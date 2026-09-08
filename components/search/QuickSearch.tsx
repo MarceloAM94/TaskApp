@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { getTasks } from "@/actions/tasks";
 import { useAppState } from "@/components/providers/AppStateProvider";
+import { useKeyboardShortcuts } from "@/lib/hooks/useKeyboardShortcuts";
 import Badge from "@/components/ui/Badge";
 import type { TaskStatus, TaskWithCourse } from "@/lib/types";
 
@@ -19,17 +20,6 @@ function normalize(value: string): string {
     .replace(/[\u0300-\u036f]/g, "")
     .toLowerCase();
 }
-
-const isTypingTarget = (target: EventTarget | null) => {
-  if (!(target instanceof HTMLElement)) return false;
-  const tag = target.tagName.toLowerCase();
-  return (
-    tag === "input" ||
-    tag === "textarea" ||
-    tag === "select" ||
-    target.isContentEditable
-  );
-};
 
 export default function QuickSearch() {
   const router = useRouter();
@@ -69,11 +59,18 @@ export default function QuickSearch() {
       .slice(0, 10);
   }, [allTasks, query]);
 
-  useEffect(() => {
-    const handleKeyDown = (event: KeyboardEvent) => {
-      if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "k") {
+  const openSelected = (task: TaskWithCourse) => {
+    openDetail(task);
+    setOpen(false);
+    if (pathname !== "/") router.push("/");
+  };
+
+  useKeyboardShortcuts([
+    {
+      key: "k",
+      modifiers: { ctrl: true },
+      handler: (event) => {
         event.preventDefault();
-        if (isTypingTarget(event.target)) return;
         const nextOpen = !open;
         setOpen(nextOpen);
         if (nextOpen) {
@@ -81,43 +78,47 @@ export default function QuickSearch() {
           setSelectedIndex(0);
           void loadTasks();
         }
-      }
-
-      if (!open || isTypingTarget(event.target)) return;
-
-      if (event.key === "Escape") {
+      },
+    },
+    {
+      key: "Escape",
+      ignoreWhenTyping: false,
+      handler: (event) => {
+        if (!open) return;
         event.preventDefault();
         setOpen(false);
-        return;
-      }
-
-      if (event.key === "ArrowDown") {
+      },
+    },
+    {
+      key: "ArrowDown",
+      ignoreWhenTyping: false,
+      handler: (event) => {
+        if (!open || results.length === 0) return;
         event.preventDefault();
-        setSelectedIndex((i) =>
-          results.length === 0 ? 0 : (i + 1) % results.length
-        );
-      } else if (event.key === "ArrowUp") {
+        setSelectedIndex((i) => (i + 1) % results.length);
+      },
+    },
+    {
+      key: "ArrowUp",
+      ignoreWhenTyping: false,
+      handler: (event) => {
+        if (!open || results.length === 0) return;
         event.preventDefault();
-        setSelectedIndex((i) =>
-          results.length === 0
-            ? 0
-            : (i - 1 + results.length) % results.length
-        );
-      } else if (event.key === "Enter") {
-        event.preventDefault();
+        setSelectedIndex((i) => (i - 1 + results.length) % results.length);
+      },
+    },
+    {
+      key: "Enter",
+      ignoreWhenTyping: false,
+      handler: (event) => {
+        if (!open) return;
         const selected = results[selectedIndex];
-        if (selected) {
-          openDetail(selected);
-          setOpen(false);
-          if (pathname !== "/") router.push("/");
-        }
-      }
-    };
-
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open, pathname, results, selectedIndex]);
+        if (!selected) return;
+        event.preventDefault();
+        openSelected(selected);
+      },
+    },
+  ]);
 
   useEffect(() => {
     if (open) {

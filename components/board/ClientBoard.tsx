@@ -16,8 +16,10 @@ import Column from "@/components/board/Column";
 import BoardFilters from "@/components/board/BoardFilters";
 import TaskCard from "@/components/tasks/TaskCard";
 import CreateTaskForm from "@/components/tasks/CreateTaskForm";
+import QuickCreateForm from "@/components/tasks/QuickCreateForm";
 import TaskDetailModal from "@/components/tasks/TaskDetailModal";
 import { useAppState } from "@/components/providers/AppStateProvider";
+import { useKeyboardShortcuts } from "@/lib/hooks/useKeyboardShortcuts";
 import { updateTaskStatus, updateTaskPositions, deleteTask } from "@/actions/tasks";
 import type { Course, TaskStatus, TaskWithCourse, TaskPriority } from "@/lib/types";
 
@@ -44,6 +46,7 @@ export default function ClientBoard({
 }: ClientBoardProps) {
   const [tasks, setTasks] = useState<TaskWithCourse[]>(initialTasks);
   const [showCreate, setShowCreate] = useState(false);
+  const [showQuickCreate, setShowQuickCreate] = useState(false);
   const [createStatus, setCreateStatus] = useState<TaskStatus>("pending");
   const { detailTask: selectedTask, openDetail, closeDetail } = useAppState();
   const [activeTask, setActiveTask] = useState<TaskWithCourse | null>(null);
@@ -134,6 +137,34 @@ export default function ClientBoard({
       setError(e instanceof Error ? e.message : "Error al actualizar la tarea");
     }
   };
+
+  useKeyboardShortcuts([
+    {
+      key: "n",
+      handler: (event) => {
+        event.preventDefault();
+        setShowQuickCreate(true);
+      },
+    },
+    {
+      key: "1",
+      handler: () => {
+        if (selectedTask) void handleStatusChange(selectedTask, "pending");
+      },
+    },
+    {
+      key: "2",
+      handler: () => {
+        if (selectedTask) void handleStatusChange(selectedTask, "in_progress");
+      },
+    },
+    {
+      key: "3",
+      handler: () => {
+        if (selectedTask) void handleStatusChange(selectedTask, "done");
+      },
+    },
+  ]);
 
   const handleDelete = async (taskId: string) => {
     if (!window.confirm("¿Seguro que deseas eliminar esta tarea?")) return;
@@ -392,6 +423,13 @@ export default function ClientBoard({
         onClose={() => setShowCreate(false)}
         courses={courses}
         initialStatus={createStatus}
+        onCreated={handleAddTask}
+      />
+
+      <QuickCreateForm
+        open={showQuickCreate}
+        onClose={() => setShowQuickCreate(false)}
+        courses={courses}
         onCreated={handleAddTask}
       />
 
