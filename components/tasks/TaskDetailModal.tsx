@@ -109,158 +109,167 @@ export default function TaskDetailModal({
   };
 
   return (
-    <Modal open={!!task} onClose={onClose} title="Detalle de tarea">
-      <div className="flex flex-col gap-4">
-        <div>
-          <label className="mb-1 block text-xs font-medium text-zinc-400">
-            Título *
-          </label>
-          <input
-            className={inputClass}
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-          />
-        </div>
+    <Modal
+      open={!!task}
+      onClose={onClose}
+      title={task.title ? `Detalle · ${task.title}` : "Detalle de tarea"}
+      maxWidth="max-w-5xl"
+    >
+      <div className="flex flex-col">
+        <div className="grid max-h-[calc(100dvh-15rem)] grid-cols-1 gap-4 overflow-y-auto overscroll-contain pr-1 sm:grid-cols-5 sm:gap-6 sm:pr-2">
+          {error && (
+            <p className="rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-2 text-sm text-red-400 sm:col-span-5">
+              {error}
+            </p>
+          )}
 
-        <div>
-          <label className="mb-1 block text-xs font-medium text-zinc-400">
-            Descripción
-          </label>
-          <textarea
-            className={`${inputClass} min-h-[80px] resize-y`}
-            value={description}
-            onChange={(e) => setDescription(e.target.value)}
-          />
-        </div>
+          <div className="flex flex-col gap-4 sm:col-span-3">
+            <div>
+              <label className="mb-1 block text-xs font-medium text-zinc-400">
+                Título *
+              </label>
+              <input
+                className={inputClass}
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+              />
+            </div>
 
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-          <div>
-            <label className="mb-1 block text-xs font-medium text-zinc-400">
-              Curso
-            </label>
-            <select
-              className={inputClass}
-              value={courseId}
-              onChange={(e) => setCourseId(e.target.value)}
-            >
-              <option value="">Sin curso</option>
-              {courses.map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.name}
-                </option>
-              ))}
-            </select>
-          </div>
+            <div>
+              <label className="mb-1 block text-xs font-medium text-zinc-400">
+                Descripción
+              </label>
+              <textarea
+                className={`${inputClass} min-h-[80px] resize-y`}
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+              />
+            </div>
 
-          <div>
-            <label className="mb-1 block text-xs font-medium text-zinc-400">
-              Prioridad
-            </label>
-            <select
-              className={inputClass}
-              value={priority}
-              onChange={(e) => setPriority(e.target.value as TaskPriority)}
-            >
-              {PRIORITY_OPTIONS.map((o) => (
-                <option key={o.value} value={o.value}>
-                  {o.label}
-                </option>
-              ))}
-            </select>
-          </div>
+            <div>
+              <label className="mb-1 block text-xs font-medium text-zinc-400">
+                Progreso: {progress}%
+              </label>
+              <input
+                type="range"
+                min={0}
+                max={100}
+                step={5}
+                value={progress}
+                onChange={(e) => setProgress(Number(e.target.value))}
+                className="w-full accent-violet-500"
+              />
+              <div className="mt-1 flex justify-between text-[10px] text-zinc-600">
+                <span>0</span>
+                <span>50</span>
+                <span>100</span>
+              </div>
+            </div>
 
-          <div>
-            <label className="mb-1 block text-xs font-medium text-zinc-400">
-              Fecha límite
-            </label>
-            <input
-              type="date"
-              className={inputClass}
-              value={dueDate}
-              onChange={(e) => setDueDate(e.target.value)}
+            <SubtaskList
+              taskId={task.id}
+              taskProgress={task.progress}
+              onProgressChange={setProgress}
             />
           </div>
 
-          <div>
-            <label className="mb-1 block text-xs font-medium text-zinc-400">
-              Recordatorio
-            </label>
-            <select
-              className={inputClass}
-              value={reminderOffset}
-              onChange={(e) => setReminderOffset(e.target.value)}
-              disabled={!dueDate}
-            >
-              {REMINDER_OPTIONS.map((o) => (
-                <option key={o.value} value={o.value}>
-                  {o.label}
-                </option>
-              ))}
-            </select>
-          </div>
-        </div>
+          <div className="flex flex-col gap-4 sm:col-span-2">
+            <div>
+              <label className="mb-1 block text-xs font-medium text-zinc-400">
+                Estado
+              </label>
+              <div className="flex flex-wrap gap-2">
+                {STATUS_OPTIONS.map((o) => (
+                  <button
+                    key={o.value}
+                    onClick={() => handleStatusSelect(o.value)}
+                    disabled={loading}
+                    className={`flex-1 rounded-lg px-3 py-1.5 text-xs font-medium transition-colors ${
+                      task.status === o.value
+                        ? o.value === "done"
+                          ? "bg-emerald-600 text-white"
+                          : o.value === "in_progress"
+                            ? "bg-amber-600 text-white"
+                            : "bg-sky-600 text-white"
+                        : "bg-zinc-800 text-zinc-400 hover:bg-zinc-700"
+                    }`}
+                  >
+                    {o.label}
+                  </button>
+                ))}
+              </div>
+            </div>
 
-        <div>
-          <label className="mb-1 block text-xs font-medium text-zinc-400">
-            Progreso: {progress}%
-          </label>
-          <input
-            type="range"
-            min={0}
-            max={100}
-            step={5}
-            value={progress}
-            onChange={(e) => setProgress(Number(e.target.value))}
-            className="w-full accent-violet-500"
-          />
-          <div className="mt-1 flex justify-between text-[10px] text-zinc-600">
-            <span>0</span>
-            <span>50</span>
-            <span>100</span>
-          </div>
-        </div>
-
-        <PomodoroTimer taskId={task.id} onTimeSpentChange={handleTimeSpentChange} />
-
-        <SubtaskList
-          taskId={task.id}
-          taskProgress={task.progress}
-          onProgressChange={setProgress}
-        />
-
-        <div>
-          <label className="mb-1 block text-xs font-medium text-zinc-400">
-            Estado
-          </label>
-          <div className="flex flex-wrap gap-2">
-            {STATUS_OPTIONS.map((o) => (
-              <button
-                key={o.value}
-                onClick={() => handleStatusSelect(o.value)}
-                disabled={loading}
-                className={`rounded-lg px-3 py-1.5 text-xs font-medium transition-colors ${
-                  task.status === o.value
-                    ? o.value === "done"
-                      ? "bg-emerald-600 text-white"
-                      : o.value === "in_progress"
-                        ? "bg-amber-600 text-white"
-                        : "bg-sky-600 text-white"
-                    : "bg-zinc-800 text-zinc-400 hover:bg-zinc-700"
-                }`}
+            <div>
+              <label className="mb-1 block text-xs font-medium text-zinc-400">
+                Curso
+              </label>
+              <select
+                className={inputClass}
+                value={courseId}
+                onChange={(e) => setCourseId(e.target.value)}
               >
-                {o.label}
-              </button>
-            ))}
+                <option value="">Sin curso</option>
+                {courses.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div>
+              <label className="mb-1 block text-xs font-medium text-zinc-400">
+                Prioridad
+              </label>
+              <select
+                className={inputClass}
+                value={priority}
+                onChange={(e) => setPriority(e.target.value as TaskPriority)}
+              >
+                {PRIORITY_OPTIONS.map((o) => (
+                  <option key={o.value} value={o.value}>
+                    {o.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div>
+              <label className="mb-1 block text-xs font-medium text-zinc-400">
+                Fecha límite
+              </label>
+              <input
+                type="date"
+                className={inputClass}
+                value={dueDate}
+                onChange={(e) => setDueDate(e.target.value)}
+              />
+            </div>
+
+            <div>
+              <label className="mb-1 block text-xs font-medium text-zinc-400">
+                Recordatorio
+              </label>
+              <select
+                className={inputClass}
+                value={reminderOffset}
+                onChange={(e) => setReminderOffset(e.target.value)}
+                disabled={!dueDate}
+              >
+                {REMINDER_OPTIONS.map((o) => (
+                  <option key={o.value} value={o.value}>
+                    {o.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <PomodoroTimer taskId={task.id} onTimeSpentChange={handleTimeSpentChange} />
           </div>
         </div>
 
-        {error && (
-          <p className="rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-2 text-sm text-red-400">
-            {error}
-          </p>
-        )}
-
-        <div className="mt-2 flex items-center justify-between">
+        <div className="mt-4 flex flex-wrap items-center justify-between gap-2 border-t border-zinc-800 pt-4">
           <button
             onClick={() => onDelete(task.id)}
             disabled={loading}

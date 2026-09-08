@@ -383,7 +383,7 @@ export default function ClientBoard({
         onDragOver={handleDragOver}
         onDragEnd={handleDragEnd}
       >
-        <div className="mx-auto flex w-full max-w-[1600px] flex-1 flex-col sm:min-h-0">
+        <div className="mx-auto flex min-h-0 w-full max-w-[1600px] flex-1 flex-col sm:min-h-0">
           <BoardFilters
             courses={courses}
             courseFilter={courseFilter}
@@ -395,7 +395,7 @@ export default function ClientBoard({
             taskCount={visibleCount}
           />
 
-          <div className="flex w-full flex-col gap-4 px-4 pb-4 sm:min-h-0 sm:flex-1 sm:flex-row sm:items-stretch sm:gap-4 sm:px-6">
+          <div className="flex min-h-0 w-full flex-1 flex-col gap-4 overflow-y-auto px-4 pb-4 sm:flex-1 sm:flex-row sm:items-stretch sm:gap-4 sm:overflow-visible sm:px-6">
             {STATUSES.map((status) => (
               <Column
                 key={status}
