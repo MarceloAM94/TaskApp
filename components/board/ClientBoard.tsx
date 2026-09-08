@@ -17,6 +17,7 @@ import BoardFilters from "@/components/board/BoardFilters";
 import TaskCard from "@/components/tasks/TaskCard";
 import CreateTaskForm from "@/components/tasks/CreateTaskForm";
 import TaskDetailModal from "@/components/tasks/TaskDetailModal";
+import { useAppState } from "@/components/providers/AppStateProvider";
 import { updateTaskStatus, updateTaskPositions, deleteTask } from "@/actions/tasks";
 import type { Course, TaskStatus, TaskWithCourse, TaskPriority } from "@/lib/types";
 
@@ -44,7 +45,7 @@ export default function ClientBoard({
   const [tasks, setTasks] = useState<TaskWithCourse[]>(initialTasks);
   const [showCreate, setShowCreate] = useState(false);
   const [createStatus, setCreateStatus] = useState<TaskStatus>("pending");
-  const [selectedTask, setSelectedTask] = useState<TaskWithCourse | null>(null);
+  const { detailTask: selectedTask, openDetail, closeDetail } = useAppState();
   const [activeTask, setActiveTask] = useState<TaskWithCourse | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -141,7 +142,7 @@ export default function ClientBoard({
     try {
       await deleteTask(taskId);
       setTasks((prev) => prev.filter((t) => t.id !== taskId));
-      setSelectedTask(null);
+      closeDetail();
     } catch (e) {
       setError(e instanceof Error ? e.message : "Error al eliminar la tarea");
     } finally {
@@ -369,7 +370,7 @@ export default function ClientBoard({
                 key={status}
                 status={status}
                 tasks={displayByStatus[status]}
-                onTaskClick={setSelectedTask}
+                onTaskClick={openDetail}
                 onAddTask={() => openCreate(status)}
               />
             ))}
@@ -397,7 +398,7 @@ export default function ClientBoard({
       <TaskDetailModal
         key={selectedTask?.id ?? "none"}
         task={selectedTask}
-        onClose={() => setSelectedTask(null)}
+        onClose={closeDetail}
         courses={courses}
         onUpdate={handleUpdateTask}
         onStatusChange={handleStatusChange}

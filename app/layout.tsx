@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import Nav from "@/components/ui/Nav";
 import ReminderChecker from "@/components/notifications/ReminderChecker";
+import QuickSearch from "@/components/search/QuickSearch";
+import { AppStateProvider } from "@/components/providers/AppStateProvider";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -26,9 +28,12 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col bg-zinc-950 text-zinc-100 sm:h-dvh">
-        <Nav />
-        {children}
-        <ReminderChecker />
+        <AppStateProvider>
+          <Nav />
+          {children}
+          <ReminderChecker />
+          <QuickSearch />
+        </AppStateProvider>
       </body>
     </html>
   );
